@@ -1,0 +1,59 @@
+version: "2"
+services:
+
+  #vhs-api-postman:
+  #  build: vhs-api-postman
+  #  image: ${API_POSTMAN_REPOSITORY_URL}:${API_POSTMAN_TARGET_VERSION}
+  #  container_name: 'postman'
+  #  depends_on:
+  #    - vhs-api-nodeserver
+
+  vhs-api-redis:
+    image: redis:4.0-alpine
+    container_name: 'redis'
+    restart: unless-stopped
+    environment:
+      #- ALLOW_EMPTY_PASSWORD is recommended only for development.
+      #- REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+      - REDIS_APPENDONLY=yes
+      - REDIS_APPENDFSYNC=always
+    ports:
+      - '6379:6379'
+    
+  vhs-api-nodeserver:
+    build: vhs-api-nodeserver
+    image: ${API_WEBSERVICE_REPOSITORY_URL}:${API_WEBSERVICE_TARGET_VERSION}
+    container_name: 'nodeserver'
+    restart: unless-stopped
+    hostname: 'localhost'
+    command: >
+      bash -c "sleep 60 && npm run local"
+    volumes:
+      - './vhs-api-nodeserver:/files'
+      - '/files/node_modules'
+      - '/mnt/shared/distribution:/mnt/shared/distribution'
+      - '/mnt/shared/media:/mnt/shared/media'
+    ports:
+      - "3000:3000"
+    depends_on:
+      - vhs-api-sqlserver
+
+  vhs-api-sqlserver:
+    build: vhs-api-sqlserver
+    image: ${API_SQLSERVER_REPOSITORY_URL}:${API_SQLSERVER_TARGET_VERSION}
+    restart: unless-stopped
+    container_name: 'sqlserver'
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: Dashboard123
+      METRICS_DB: Mobile_App
+      USERS_DB: Users
+      USERS_TABLE: verity_users
+      MSSQL_USER: cc_developer
+      MSSQL_PASSWORD: Dashboard123
+      USERS_USER: ma_developer
+      USERS_PASSWORD: T87JuhgW
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+
